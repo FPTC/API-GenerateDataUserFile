@@ -2,7 +2,7 @@
  * LeadIS Consulting
  * Autor: Juan Guillermo Gómez
  * Fecha: 21/06/2017
- * Functions en firebase para validar las respuestas y decidir que premios mostrar
+ * Functions en firebase para generar el excel de los datos de los usuarios
  */
 
 'use strict';
@@ -19,7 +19,7 @@ const uuidv1 = require('uuid/v1');
 
 //firebase functions:config:set confbucket.name="fptc-dev.appspot.com"
 //const URL_BUCKET = 'fptc-dev.appspot.com';
-const PROJECT_ID = 'fptc-test';
+const PROJECT_ID = 'amate-b8ceb';
 const KEY_FILE_NAME = 'api/credentials/serviceAccountKey.json';
 const URL_BUCKET = 'amate-b8ceb.appspot.com';
 const DB_URL = "https://amate-b8ceb.firebaseio.com";
@@ -109,13 +109,57 @@ exports.generateUserDataFile = (req, resp) => {
             // Se itera por cada usuario y se crea una promesa por sus respuestas
             usersTMP.forEach(usuario => {
 
-                //console.log(usuario.val());                
-
+               // console.log(usuario.val());                
                 // Datos del usuario
-                let row = `{"dateCreated":"${usuario.val().dateCreated}", "name":"${usuario.val().name}", "lastName": "${usuario.val().lastName}",`
+                /**    let row = `{"dateCreated":"${usuario.val().dateCreated}", "name":"${usuario.val().name}", "lastName": "${usuario.val().lastName}",`
                     + `"dateBirthday": "${usuario.val().dateBirthday}", `
                     + `"phoneNumber": "${usuario.val().phoneNumber}", "address": "${usuario.val().address}", "neighborhood": "${usuario.val().neighborhood}",`
-                    + `"email": "${usuario.val().email}", "state": ${usuario.val().state}`;
+                    + `"email": "${usuario.val().email}", "state": ${usuario.val().state}`;**/
+
+                //Jacob: agrego validaciones para cuando faltan datos del usuario. 
+                let row = "";
+                if (usuario.val().dateCreated != undefined ) {
+                    row = `{"dateCreated": "${usuario.val().dateCreated}"`;
+                } else {
+                   row = `{"dateCreated":"Indefinido"`;
+
+                }                   
+
+                if (usuario.val().name != undefined) {
+                    row += `, "name":"${usuario.val().name}"`;
+                }
+
+                if (usuario.val().lastName != undefined) {
+                    row += `, "lastName": "${usuario.val().lastName}"`;
+                }
+
+                if (usuario.val().dateBirthday != undefined) {
+                    row += `, "dateBirthday": "${usuario.val().dateBirthday}"`;
+                }
+
+                if (usuario.val().phoneNumber != undefined) {
+                    row += `, "phoneNumber": "${usuario.val().phoneNumber}"`;
+                }
+
+                if (usuario.val().phoneNumberCel != undefined) {
+                    row += `, "phoneNumberCel": "${usuario.val().phoneNumberCel}"`;
+                }
+
+                if (usuario.val().address != undefined) {
+                    row += `, "address": "${usuario.val().address}"`;
+                }
+
+                if (usuario.val().neighborhood != undefined) {
+                    row += `, "neighborhood": "${usuario.val().neighborhood}"`;
+                }
+
+                if (usuario.val().email != undefined) {
+                    row += `, "email": "${usuario.val().email}"`;
+                }
+
+                if (usuario.val().state != undefined) {
+                    row += `, "state": ${usuario.val().state}`;
+                }
 
                 if ('breastIndication' in usuario.val()) {
                     row += `, "breastIndication": ${usuario.val().breastIndication}`
@@ -186,7 +230,7 @@ exports.generateUserDataFile = (req, resp) => {
 
                 row += `, "prize": ${prize}`
 
-                //console.log(usuario.val());
+              //  console.log(usuario.val());
 
                 promisesUsers.push(fillAnswers(questionsTMPBreast, questionsTMPCervix, 0, usuario.key, row));
 
@@ -352,8 +396,19 @@ function fillOneUserAnswers(questionsTMP, index, uidUser, row, typeCancer) {
                             row += `, `;
                         }
 
+                        if (answersUsu.val() != null && 'anidada0' in answersUsu.val() && answersUsu.val().anidada0 != null) {
+                            row = row + `"${questionsTMP[index].key}_1_1": "${answersUsu.val().anidada0}"`;
+                            row += `, `;
+                        }
+
+
                         if (answersUsu.val() != null && 'respuesta1' in answersUsu.val() && answersUsu.val().respuesta1 != null) {
                             row = row + `"${questionsTMP[index].key}_2": "${answersUsu.val().respuesta1}"`;
+                            row += `, `;
+                        }
+
+                        if (answersUsu.val() != null && 'anidada1' in answersUsu.val() && answersUsu.val().anidada1 != null) {
+                            row = row + `"${questionsTMP[index].key}_1_2": "${answersUsu.val().anidada1}"`;
                             row += `, `;
                         }
 
@@ -396,8 +451,15 @@ function fillAnswersText(questionsBreast, questionsCervix, sheet2) {
             question.child("answers").forEach(data => {                
                 row = "";
                 row = `{"answerID":"${data.key}", "text":"${data.val().description}"}`;
-                //console.log(row);
                 sheet2.addRow(JSON.parse(row));
+                if (data.val().question) {
+                    for(let answera in data.val().question.answers){
+                       row = `{"answerID":"${answera}", "text":"${data.val().question.answers[answera].description}"}`;
+                        sheet2.addRow(JSON.parse(row));
+                    }
+                }
+                //console.log(row);
+             //   sheet2.addRow(JSON.parse(row));
             });
 
         });
@@ -407,8 +469,15 @@ function fillAnswersText(questionsBreast, questionsCervix, sheet2) {
              question.child("answers").forEach(data => {                
                 row = "";
                 row = `{"answerID":"${data.key}", "text":"${data.val().description}"}`;
-                //console.log(row);
                 sheet2.addRow(JSON.parse(row));
+                if (data.val().question) {
+                    for(let answera in data.val().question.answers){
+                       row = `{"answerID":"${answera}", "text":"${data.val().question.answers[answera].description}"}`;
+                        sheet2.addRow(JSON.parse(row));
+                    }
+                }
+                //console.log(row);
+            //    sheet2.addRow(JSON.parse(row));
             });
 
         });
@@ -444,7 +513,8 @@ function headers(questionsBreast, questionsCervix, numOpportunities) {
         { header: 'Apellidos', key: 'lastName' },
         { header: 'Fecha de Nacimiento', key: 'dateBirthday' },
         { header: 'Edad', key: 'age' },
-        { header: 'Num de Celular', key: 'phoneNumber' },
+        { header: 'Num fijo', key: 'phoneNumber' },
+        { header: 'Celular', key: 'phoneNumberCel' },
         { header: 'Dirección', key: 'address' },
         { header: 'Barrio', key: 'neighborhood' },
         { header: 'Altura', key: 'height' },
@@ -456,16 +526,31 @@ function headers(questionsBreast, questionsCervix, numOpportunities) {
     for (let i = 1; i <= numOpportunities; i++) {
 
         let indexQuestion = 1;
+        let indexAnidada;
 
         questionsBreast.forEach(question => {
+            indexAnidada = 1;
             columns.push({ header: `PS_${indexQuestion}_${i} ${question.val().text}`, key: `${question.key}_${i}` });
+            for(let respuesta in question.val().answers){
+                if(question.val().answers[respuesta].question){
+                     columns.push({ header: `PSA_${indexAnidada}_${i} ${question.val().answers[respuesta].question.text}`, key: `${question.key}_${indexAnidada}_${i}` });
+                 indexAnidada++;
+                }
+            }
             indexQuestion++;
         });
 
         indexQuestion = 1;
 
         questionsCervix.forEach(question => {
+            indexAnidada = 1;
             columns.push({ header: `PCU_${indexQuestion}_${i} ${question.val().text}`, key: `${question.key}_${i}` });
+             for(let respuesta in question.val().answers){
+                if( question.val().answers[respuesta].question){
+                     columns.push({ header: `PCUA_${indexAnidada}_${i} ${question.val().answers[respuesta].question.text}`, key: `${question.key}_${indexAnidada}_${i}` });
+                 indexAnidada++;
+                }
+            }
             indexQuestion++;
         });
 
